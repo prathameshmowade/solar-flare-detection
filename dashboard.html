@@ -595,34 +595,38 @@
         <div class="precursor-step"><h4 style="color:var(--green)">Forecast</h4><p>AI predicts flare probability <strong>30 min ahead</strong>.</p><span class="time-tag" style="background:rgba(74,222,128,0.1);color:var(--green)">HORIZON = 30 min</span></div>
       </div>
       <div class="stages">
-        <div class="stage"><div class="num">5/5</div><h4>Flares Detected</h4><p>100% detection rate</p></div>
-        <div class="stage"><div class="num" style="background:linear-gradient(135deg,var(--amber),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent">95.7%</div><h4>Precision</h4><p>XGBoost forecast accuracy</p></div>
-        <div class="stage"><div class="num" style="background:linear-gradient(135deg,var(--green),#6ee7b7);-webkit-background-clip:text;-webkit-text-fill-color:transparent">0.997</div><h4>AUC Score</h4><p>Near-perfect separation</p></div>
-        <div class="stage"><div class="num" style="background:linear-gradient(135deg,var(--pink),#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">8-12s</div><h4>HXR Lead</h4><p>Neupert effect lag</p></div>
+        <div class="stage"><div class="num" id="occ-count">0</div><h4>Flares Detected</h4><p id="occ-count-desc">Waiting for data&hellip;</p></div>
+        <div class="stage"><div class="num" id="occ-strongest" style="background:linear-gradient(135deg,var(--amber),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent">&mdash;</div><h4>Strongest</h4><p id="occ-strongest-desc">No flares yet</p></div>
+        <div class="stage"><div class="num" id="occ-avg-dur" style="background:linear-gradient(135deg,var(--green),#6ee7b7);-webkit-background-clip:text;-webkit-text-fill-color:transparent">&mdash;</div><h4>Avg Duration</h4><p>Across detected events</p></div>
+        <div class="stage"><div class="num" id="occ-forecast" style="background:linear-gradient(135deg,var(--pink),#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">&mdash;</div><h4>Forecast Lead</h4><p id="occ-forecast-desc">Avg advance warning</p></div>
       </div>
     </div>
 
-    <!-- Timeline -->
+    <!-- Timeline (dynamically populated from Live Monitor) -->
     <div class="fo-section">
-      <div class="fo-section-title"><span>&#128336;</span> Timeline &mdash; The 5 Demo Flares<span class="fo-line"></span></div>
-      <div class="timeline">
-        <div class="timeline-event ev-C"><div class="event-header"><span class="class-badge">C-CLASS</span><span class="time-label">&#9201; Peak at 00:30:00 (1800 s)</span><span class="peak-val">15.5&times; bg</span></div><p class="desc"><strong>Moderate flare</strong> &mdash; rise 220 s, decay 1100 s. Pre-flare SXR enhancement visible ~15 min before. HXR leads by <strong>8 s</strong>.</p></div>
-        <div class="timeline-event ev-M"><div class="event-header"><span class="class-badge">M-CLASS</span><span class="time-label">&#9201; Peak at 01:40:00 (6000 s)</span><span class="peak-val">49.1&times; bg</span></div><p class="desc"><strong>Major flare</strong> &mdash; fast rise (85 s). Very strong precursor signal. HXR coincides exactly with SXR (<strong>lag = 0 s</strong>).</p></div>
-        <div class="timeline-event ev-B"><div class="event-header"><span class="class-badge">B-CLASS</span><span class="time-label">&#9201; Peak at 03:00:00 (10800 s)</span><span class="peak-val">7.9&times; bg</span></div><p class="desc"><strong>Weak flare</strong> &mdash; hardest to detect. <strong style="color:var(--amber)">No pre-flare enhancement</strong>. HXR leads by <strong>12 s</strong>. Successfully detected despite being near the B/C boundary.</p></div>
-        <div class="timeline-event ev-X"><div class="event-header"><span class="class-badge">X-CLASS</span><span class="time-label">&#9201; Peak at 04:20:00 (15600 s)</span><span class="peak-val">463.3&times; bg</span></div><p class="desc"><strong style="color:var(--red)">Extreme flare!</strong> &mdash; fastest rise (55 s). Enormous magnitudes: SXR 450&times;, HXR 900&times;. <strong>Strongest event in the dataset.</strong></p></div>
-        <div class="timeline-event ev-C"><div class="event-header"><span class="class-badge">C-CLASS</span><span class="time-label">&#9201; Peak at 05:30:00 (19800 s)</span><span class="peak-val">13.6&times; bg</span></div><p class="desc"><strong>Moderate flare</strong> &mdash; rise 180 s, decay 950 s. Pre-flare enhancement present. HXR leads by <strong>12 s</strong>. Final event validates consistency.</p></div>
+      <div class="fo-section-title"><span>&#128336;</span> Timeline &mdash; Detected Flares <span id="occ-timeline-badge" style="font-size:0.7rem;color:var(--ink3);font-weight:400">(from Live Monitor)</span><span class="fo-line"></span></div>
+      <div class="timeline" id="occ-timeline">
+        <div class="timeline-event" style="border-color:var(--border);text-align:center;padding:28px 20px">
+          <p style="color:var(--ink3);font-size:0.8rem">No flares detected yet. Start the <strong style="color:var(--ink)">Live Monitor</strong> and load demo data to begin.</p>
+        </div>
       </div>
     </div>
 
-    <!-- Flare Profile Chart -->
+    <!-- Flare Profile Chart (real data from Live Monitor) -->
     <div class="fo-section">
-      <div class="fo-section-title"><span>&#128202;</span> Flare Profile &mdash; SXR vs HXR Signal Shape<span class="fo-line"></span></div>
+      <div class="fo-section-title"><span>&#128202;</span> Flare Profile &mdash; Real SXR vs HXR Data<span class="fo-line"></span></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <select id="occ-flare-select" style="padding:6px 12px;border-radius:8px;background:var(--surface);border:1px solid var(--border);color:var(--ink);font-family:'JetBrains Mono',monospace;font-size:0.75rem;cursor:pointer" onchange="plotFlareProfile(+this.value)">
+          <option value="-1">Select a detected flare&hellip;</option>
+        </select>
+        <span id="occ-chart-info" style="font-size:0.7rem;color:var(--ink2);align-self:center"></span>
+      </div>
       <div class="fo-chart-container">
         <canvas id="flare-chart"></canvas>
         <div class="chart-legend">
-          <span><span class="dot" style="background:var(--sky)"></span> SXR (Soft X-ray) &mdash; Gaussian rise, exponential decay</span>
-          <span><span class="dot" style="background:var(--pink)"></span> HXR (Hard X-ray) &mdash; Impulsive spike (5&times; narrower)</span>
-          <span><span class="dot" style="background:var(--purple);opacity:0.5"></span> Pre-flare enhancement zone</span>
+          <span><span class="dot" style="background:#0284C7"></span> SXR 6-10 keV (actual counts/s)</span>
+          <span><span class="dot" style="background:#DB2777"></span> HXR 10-15 keV (actual counts/s)</span>
+          <span><span class="dot" style="background:rgba(251,191,36,0.5)"></span> Background level</span>
         </div>
       </div>
     </div>
@@ -648,6 +652,7 @@ function switchSection(name, btn) {
   btn.classList.add('active');
   // Lazy-init flare chart when occurrence tab shown
   if (name === 'occurrence' && !window._flareChartInit) initFlareChart();
+  else if (name === 'occurrence') syncOccurrence();
   // Redraw workflow connectors
   if (name === 'workflow') setTimeout(drawConnectors, 100);
 }
@@ -674,6 +679,7 @@ const H_LABELS=['6-10 keV','10-15 keV','15-25 keV','25-40 keV'];
 const S_COLORS=['#FF9933','#FF671F','#EC407A'];
 const H_COLORS=['#1E88E5','#5C6BC0','#2E7D32','#FF671F'];
 const MAX_PTS=450;
+const DT=4;
 
 const A={data:null,idx:0,playing:false,speed:30,threshold:3.0,bgWin:300,inFlare:false,flareStart:0,forecastAlerted:false,forecastAlertIdx:null,events:[],probHist:[],bgS:null,animId:null};
 
@@ -802,20 +808,138 @@ window.addEventListener('resize',drawConnectors);
    FLARE OCCURRENCE — Profile chart
    ═══════════════════════════════════════════════════ */
 window._flareChartInit = false;
+let _flareChart = null;
+
 function initFlareChart(){
   window._flareChartInit = true;
-  const N=600,dt=2,peakIdx=200,riseS=85,decayS=580;const hRise=riseS*0.22,hDecay=decayS*0.13;
-  const sxr=[],hxr=[],pre=[],labels=[];
-  for(let i=0;i<N;i++){const t=(i-peakIdx)*dt;labels.push(((i*dt)/60).toFixed(1));
-    sxr.push((t<0?Math.exp(-t*t/(2*riseS*riseS)):Math.exp(-t/decayS))*49);
-    hxr.push((t<0?Math.exp(-t*t/(2*hRise*hRise)):Math.exp(-t/hDecay))*49*0.7);
-    if(t>=-2100&&t<-riseS*2.5){const pe=0.13*Math.exp(-((t+900)**2)/(2*450*450));pre.push(pe>5e-4?pe*49*3:null);}else{pre.push(null);}
+  syncOccurrence();
+}
+
+/* ── Sync Flare Occurrence tab with Live Monitor data ── */
+function syncOccurrence(){
+  // Update stats
+  const n = A.events.length;
+  document.getElementById('occ-count').textContent = n;
+  document.getElementById('occ-count-desc').textContent = n === 0 ? 'Waiting for data…' : n + ' event' + (n>1?'s':'') + ' detected';
+
+  if(n > 0){
+    const strongest = A.events.reduce((a,b) => a.ratio > b.ratio ? a : b);
+    document.getElementById('occ-strongest').textContent = strongest.cls + '-class';
+    document.getElementById('occ-strongest-desc').textContent = strongest.ratio.toFixed(0) + '× background';
+
+    const avgDur = A.events.reduce((s,e) => s + e.dur, 0) / n;
+    document.getElementById('occ-avg-dur').textContent = (avgDur/60).toFixed(1) + 'm';
+
+    const forecasted = A.events.filter(e => e.leadMin != null);
+    if(forecasted.length > 0){
+      const avgLead = forecasted.reduce((s,e) => s + e.leadMin, 0) / forecasted.length;
+      document.getElementById('occ-forecast').textContent = '+' + avgLead.toFixed(0) + 'min';
+      document.getElementById('occ-forecast-desc').textContent = forecasted.length + '/' + n + ' forecasted';
+    } else {
+      document.getElementById('occ-forecast').textContent = '—';
+      document.getElementById('occ-forecast-desc').textContent = 'No advance warnings yet';
+    }
   }
-  new Chart(document.getElementById('flare-chart'),{type:'line',data:{labels,datasets:[
-    {label:'Pre-flare',data:pre,borderColor:'rgba(234,88,12,0.4)',backgroundColor:'rgba(234,88,12,0.08)',borderWidth:1.5,pointRadius:0,fill:true,tension:0.3,spanGaps:false},
-    {label:'SXR',data:sxr,borderColor:'#0284C7',backgroundColor:'rgba(2,132,199,0.08)',borderWidth:2,pointRadius:0,fill:true,tension:0.2},
-    {label:'HXR',data:hxr,borderColor:'#DB2777',backgroundColor:'rgba(219,39,119,0.06)',borderWidth:2,pointRadius:0,fill:true,tension:0.2}
-  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Time (minutes)',color:'var(--ink2)',font:{family:'Outfit',size:10}},grid:{color:'rgba(15,23,42,0.04)'},border:{color:'rgba(15,23,42,0.06)'},ticks:{color:'var(--ink2)',maxTicksLimit:12,maxRotation:0,font:{family:'JetBrains Mono',size:8}}},y:{title:{display:true,text:'Flux (× background)',color:'var(--ink2)',font:{family:'Outfit',size:10}},grid:{color:'rgba(15,23,42,0.04)'},border:{color:'rgba(15,23,42,0.06)'},ticks:{color:'var(--ink2)',font:{family:'JetBrains Mono',size:8}}}}}});
+
+  // Update timeline
+  const tl = document.getElementById('occ-timeline');
+  if(n === 0){
+    tl.innerHTML = '<div class="timeline-event" style="border-color:var(--border);text-align:center;padding:28px 20px"><p style="color:var(--ink3);font-size:0.8rem">No flares detected yet. Start the <strong style="color:var(--ink)">Live Monitor</strong> and load demo data to begin.</p></div>';
+  } else {
+    tl.innerHTML = '';
+    A.events.forEach((ev, idx) => {
+      const cls = ev.cls;
+      const clsMap = {X:'Extreme',M:'Major',C:'Moderate',B:'Weak',A:'Micro'};
+      const lead = ev.leadMin != null ? ' Forecast lead: <strong>+' + ev.leadMin + ' min</strong>.' : ' <span style="color:var(--ink3)">No advance warning.</span>';
+      const div = document.createElement('div');
+      div.className = 'timeline-event ev-' + cls;
+      div.innerHTML = '<div class="event-header"><span class="class-badge">' + cls + '-CLASS</span><span class="time-label">⏱ Peak at ' + fmt(ev.peakT) + ' (' + ev.peakT + ' s)</span><span class="peak-val">' + ev.ratio.toFixed(1) + '× bg</span></div>' +
+        '<p class="desc"><strong>' + clsMap[cls] + ' flare</strong> — duration ' + (ev.dur/60).toFixed(1) + ' min, peak flux ' + ev.peakFlux.toFixed(0) + ' cts/s, energy ' + ev.energy + '.' + lead + '</p>';
+      div.style.cursor = 'pointer';
+      div.title = 'Click to view flare profile';
+      div.addEventListener('click', () => { document.getElementById('occ-flare-select').value = idx; plotFlareProfile(idx); });
+      tl.appendChild(div);
+    });
+  }
+
+  // Update flare selector dropdown
+  const sel = document.getElementById('occ-flare-select');
+  const curVal = +sel.value;
+  sel.innerHTML = '<option value="-1">Select a detected flare…</option>';
+  A.events.forEach((ev, idx) => {
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = '#' + (idx+1) + ' — ' + ev.cls + '-class at ' + fmt(ev.peakT) + ' (' + ev.ratio.toFixed(0) + '× bg)';
+    sel.appendChild(opt);
+  });
+  // Auto-select the latest flare
+  if(n > 0){
+    const latest = n - 1;
+    sel.value = latest;
+    plotFlareProfile(latest);
+  }
+}
+
+/* ── Plot actual SXR/HXR data around a detected flare ── */
+function plotFlareProfile(evIdx){
+  if(evIdx < 0 || evIdx >= A.events.length || !A.data) return;
+  const ev = A.events[evIdx];
+  const pkI = ev.peakIdx;
+  // Show ±5 min (75 data points) around the peak, or more for long flares
+  const windowPts = Math.max(75, Math.round(ev.dur / DT) + 50);
+  const halfWin = Math.round(windowPts / 2);
+  const startI = Math.max(0, pkI - halfWin);
+  const endI = Math.min(A.data.time.length - 1, pkI + halfWin);
+
+  const labels = [];
+  const sxrData = [];
+  const hxrData = [];
+  const bgData = [];
+
+  for(let i = startI; i <= endI; i++){
+    const relT = A.data.time[i] - A.data.time[pkI];
+    labels.push((relT >= 0 ? '+' : '') + (relT/60).toFixed(1));
+    sxrData.push(A.data.solexs[2][i]);
+    hxrData.push(A.data.helios[1][i]);
+    bgData.push(A.bgS ? A.bgS[i] : null);
+  }
+
+  document.getElementById('occ-chart-info').textContent =
+    ev.cls + '-class · Peak ' + fmt(ev.peakT) + ' · ' + ev.ratio.toFixed(0) + '× bg · ' + (ev.dur/60).toFixed(1) + ' min';
+
+  if(_flareChart) _flareChart.destroy();
+  _flareChart = new Chart(document.getElementById('flare-chart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {label:'SXR 6-10 keV', data:sxrData, borderColor:'#0284C7', backgroundColor:'rgba(2,132,199,0.08)', borderWidth:2, pointRadius:0, fill:true, tension:0.2},
+        {label:'HXR 10-15 keV', data:hxrData, borderColor:'#DB2777', backgroundColor:'rgba(219,39,119,0.06)', borderWidth:2, pointRadius:0, fill:true, tension:0.2},
+        {label:'Background', data:bgData, borderColor:'rgba(251,191,36,0.5)', borderWidth:1.5, borderDash:[5,4], pointRadius:0, fill:false, tension:0.1}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      interaction:{mode:'nearest',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{title:items => 'T = ' + items[0].label + ' min (from peak)'}}
+      },
+      scales:{
+        x:{
+          title:{display:true, text:'Time relative to peak (minutes)', color:'var(--ink2)', font:{family:'Outfit',size:10}},
+          grid:{color:'rgba(15,23,42,0.04)'}, border:{color:'rgba(15,23,42,0.06)'},
+          ticks:{color:'var(--ink2)', maxTicksLimit:12, maxRotation:0, font:{family:'JetBrains Mono',size:8}}
+        },
+        y:{
+          type:'logarithmic',
+          title:{display:true, text:'Counts/s', color:'var(--ink2)', font:{family:'Outfit',size:10}},
+          grid:{color:'rgba(15,23,42,0.04)'}, border:{color:'rgba(15,23,42,0.06)'},
+          ticks:{color:'var(--ink2)', font:{family:'JetBrains Mono',size:8}, callback:v=>[1,10,100,1000,10000].includes(v)?v.toLocaleString():''}
+        }
+      }
+    }
+  });
 }
 </script>
 </body>
