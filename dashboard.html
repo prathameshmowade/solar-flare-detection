@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aditya-L1 Solar Flare Pipeline — Complete Dashboard</title>
+  <meta name="description" content="Complete dashboard for the Aditya-L1 Solar Flare Detection & Forecasting Pipeline — live monitor, pipeline workflow, and flare occurrence analysis.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ═══════════════════════════════════════════════════════════
+       GLOBAL RESET & VARIABLES
+       ═══════════════════════════════════════════════════════════ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #F8FAFC;
+      --bg2:      #F1F5F9;
+      --surface:  rgba(255,255,255,0.85);
+      --surface2: rgba(241,245,249,0.9);
+      --glass:    rgba(0,0,0,0.02);
+      --glass2:   rgba(0,0,0,0.04);
+      --border:   rgba(15,23,42,0.08);
+      --border-h: rgba(15,23,42,0.16);
+      --ink:      #0F172A;
+      --ink2:     #475569;
+      --ink3:     #94A3B8;
+      --solar:    #EA580C;
+      --solar-g:  linear-gradient(135deg,#EA580C,#F59E0B);
+      --solar-glow: rgba(234,88,12,0.15);
+      --sky:      #0284C7;
+      --green:    #16A34A;
+      --amber:    #D97706;
+      --red:      #DC2626;
+      --purple:   #7C3AED;
+      --pink:     #DB2777;
+      --gold:     #B45309;
+      --s0:#D97706; --s1:#DC2626; --s2:#7C3AED;
+      --h0:#0284C7; --h1:#4F46E5; --h2:#16A34A; --h3:#EA580C;
+      --shadow3d: 0 1px 3px rgba(0,0,0,0.05), 0 4px 12px rgba(0,0,0,0.05), 0 0 1px rgba(0,0,0,0.02) inset;
+      --shadow-hover: 0 4px 12px rgba(0,0,0,0.08), 0 12px 32px rgba(0,0,0,0.1), 0 0 1px rgba(0,0,0,0.04) inset;
+    }
+    body {
+      background: var(--bg); color: var(--ink);
+      font-family: 'Outfit', -apple-system, system-ui, sans-serif;
+      font-size: 13px; line-height: 1.5; min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Starfield ── */
+    #starfield { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .star {
+      position: absolute; border-radius: 50%; background: rgba(15,23,42,0.12);
+      animation: twinkle var(--dur) ease-in-out infinite var(--delay);
+    }
+    @keyframes twinkle {
+      0%,100%{ opacity: var(--o); transform: scale(1); }
+      50%{ opacity: 0.15; transform: scale(0.6); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       TOP NAVIGATION BAR
+       ═══════════════════════════════════════════════════════════ */
+    .top-nav {
+      position: sticky; top: 0; z-index: 200;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(24px) saturate(1.6);
+      -webkit-backdrop-filter: blur(24px) saturate(1.6);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center;
+      padding: 0 24px; height: 60px; gap: 14px;
+    }
+    .top-nav::after {
+      content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--solar-glow), transparent);
+    }
+    .nav-sun {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: radial-gradient(circle at 38% 35%,#FFE082,#FFB300 35%,#FF8F00 60%,#E65100 85%,#BF360C);
+      box-shadow: 0 0 14px 4px rgba(255,152,0,0.4), 0 0 36px 10px rgba(255,107,44,0.18);
+      animation: sunPulse 3s ease-in-out infinite;
+    }
+    @keyframes sunPulse {
+      0%,100%{ box-shadow: 0 0 14px 4px rgba(255,152,0,0.4), 0 0 36px 10px rgba(255,107,44,0.18); }
+      50%{ box-shadow: 0 0 20px 8px rgba(255,152,0,0.5), 0 0 50px 16px rgba(255,107,44,0.25); }
+    }
+    .nav-brand h1 { font-size: 15px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; }
+    .nav-brand p { font-size: 9px; color: var(--ink3); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 1px; }
+    .nav-spacer { flex: 1; }
+
+    /* Tab buttons */
+    .nav-tabs { display: flex; gap: 4px; }
+    .nav-tab {
+      padding: 8px 18px; border-radius: 10px;
+      background: transparent; border: 1.5px solid transparent;
+      color: var(--ink2); font-family: inherit;
+      font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.3s;
+      white-space: nowrap; letter-spacing: 0.01em;
+    }
+    .nav-tab:hover { color: var(--ink); background: var(--glass); }
+    .nav-tab.active {
+      color: #fff;
+      background: var(--solar);
+      border-color: var(--solar);
+      box-shadow: 0 2px 8px var(--solar-glow);
+    }
+    .nav-tab .tab-icon { margin-right: 6px; }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION PAGES (show/hide)
+       ═══════════════════════════════════════════════════════════ */
+    .section-page {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+    .section-page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 1: LIVE MONITOR (from solar_flare_monitor.html)
+       ═══════════════════════════════════════════════════════════ */
+    /* Monitor header bar */
+    .monitor-bar {
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      height: 48px; display: flex; align-items: center; padding: 0 20px; gap: 12px;
+    }
+    #mon-status {
+      font-size: 11px; font-weight: 700; padding: 5px 14px;
+      border-radius: 20px; border: 1.5px solid; white-space: nowrap;
+    }
+    #mon-status.quiet  { background: rgba(34,197,94,0.12); color: #4ADE80; border-color: rgba(34,197,94,0.3); }
+    #mon-status.flare  { background: rgba(239,68,68,0.15); color: #FCA5A5; border-color: rgba(239,68,68,0.4); animation: pulse-r 1.2s ease infinite; }
+    #mon-status.watch  { background: rgba(251,191,36,0.12); color: #FDE68A; border-color: rgba(251,191,36,0.3); }
+    #mon-status.ready  { background: rgba(56,189,248,0.1); color: #7DD3FC; border-color: rgba(56,189,248,0.25); }
+    @keyframes pulse-r { 0%,100%{ box-shadow:0 0 0 0 rgba(239,68,68,0.35); } 50%{ box-shadow:0 0 0 8px rgba(239,68,68,0); } }
+    .mon-spacer { flex:1; }
+
+    .hbtn {
+      display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+      border-radius: 8px; border: 1.5px solid var(--border);
+      background: var(--surface); color: var(--ink2);
+      font-family: inherit; font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; backdrop-filter: blur(8px);
+    }
+    .hbtn:disabled { opacity: 0.3; cursor: default; }
+    .hbtn.play { background: var(--solar-g); color: #fff; border-color: transparent; box-shadow: 0 2px 10px var(--solar-glow); }
+    .hbtn.play:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
+    .hbtn:not(.play):hover:not(:disabled) { border-color: var(--solar); color: var(--solar); }
+
+    /* Monitor layout */
+    .mon-layout { display: grid; grid-template-columns: 255px 1fr; min-height: calc(100vh - 108px); position: relative; z-index: 1; }
+
+    /* Sidebar */
+    .mon-aside {
+      background: rgba(248,250,252,0.8); backdrop-filter: blur(16px);
+      border-right: 1px solid var(--border); padding: 14px 12px;
+      display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
+    }
+    .sb-card {
+      background: var(--surface); backdrop-filter: blur(12px);
+      border: 1px solid var(--border); border-radius: 14px; padding: 13px 14px;
+      box-shadow: var(--shadow3d); transition: transform 0.3s, box-shadow 0.3s;
+      animation: slideUp 0.5s ease both;
+    }
+    .sb-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+    @keyframes slideUp { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    .sb-lbl {
+      font-size: 9px; font-weight: 700; letter-spacing: 0.16em;
+      color: var(--ink3); text-transform: uppercase; margin-bottom: 9px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .sb-lbl::before { content:''; display:inline-block; width:3px; height:10px; border-radius:2px; background:var(--solar-g); }
+    .btn-primary {
+      display: block; width: 100%; background: var(--solar-g); color: #fff;
+      border: none; border-radius: 10px; padding: 10px; font-family: inherit;
+      font-size: 12px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 16px var(--solar-glow); margin-bottom: 7px;
+      transition: all 0.2s; text-align: center;
+    }
+    .btn-primary:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    label.btn-upload {
+      display: block; width: 100%; border: 1.5px dashed var(--border);
+      color: var(--ink3); border-radius: 10px; padding: 9px; font-size: 11px;
+      cursor: pointer; transition: all 0.2s; text-align: center;
+    }
+    label.btn-upload:hover { border-color: var(--solar); color: var(--solar); }
+    label.btn-upload input { display: none; }
+    .hint { font-size: 10px; color: var(--ink2); line-height: 1.65; margin-top: 7px; }
+    .hint code { color: var(--sky); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+    .sl-row { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink2); margin-bottom: 4px; }
+    .sl-val { font-weight: 700; color: var(--solar); font-family: 'JetBrains Mono', monospace; }
+    .sl-dim { color: var(--ink3); font-family: 'JetBrains Mono', monospace; }
+    input[type=range] { width: 100%; margin-bottom: 8px; height: 4px; -webkit-appearance: none; background: var(--glass2); border-radius: 2px; outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%; background: var(--solar-g); cursor: pointer; box-shadow: 0 0 8px var(--solar-glow); }
+    .pb-note { font-size: 10px; color: var(--ink2); text-align: center; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .stat-box { background: var(--glass); border: 1px solid var(--border); border-radius: 10px; padding: 9px 10px; transition: all 0.25s; }
+    .stat-box:hover { background: var(--glass2); border-color: var(--border-h); }
+    .stat-v { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.1; font-family: 'JetBrains Mono', monospace; }
+    .stat-k { font-size: 9px; color: var(--ink3); margin-top: 3px; }
+    .stat-full { grid-column: 1/-1; }
+    .stat-row-flat { display: flex; justify-content: space-between; align-items: center; }
+    .mi-row { display: flex; justify-content: space-between; align-items: center; font-size: 11px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .mi-row:last-child { border-bottom: none; }
+    .mi-k { color: var(--ink3); }
+    .mi-v { color: var(--ink2); font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+    .sa-meter { height: 5px; border-radius: 3px; background: var(--glass2); margin-top: 5px; margin-bottom: 3px; overflow: hidden; }
+    .sa-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+    .sa-label-row { display: flex; justify-content: space-between; font-size: 10px; color: var(--ink3); margin-bottom: 2px; }
+
+    /* Main chart area */
+    .mon-main { padding: 14px 18px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    .chart-card {
+      background: var(--surface); backdrop-filter: blur(14px);
+      border-radius: 16px; box-shadow: var(--shadow3d);
+      padding: 14px 16px; border: 1px solid var(--border);
+      border-left: 4px solid transparent;
+      transition: all 0.35s; position: relative; overflow: hidden;
+    }
+    .chart-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); border-color: var(--border-h); }
+    .chart-card.solexs  { border-left-color: var(--s1); }
+    .chart-card.helios  { border-left-color: var(--h0); }
+    .chart-card.forecast{ border-left-color: var(--purple); }
+    .chart-card.spectrum{ border-left-color: var(--green); }
+    .chart-card.flare-active { border-left-color: var(--red) !important; box-shadow: 0 0 30px rgba(239,68,68,0.12), var(--shadow3d); }
+    .chart-card.watch-active { border-left-color: var(--amber) !important; box-shadow: 0 0 25px rgba(251,191,36,0.1), var(--shadow3d); }
+    .card-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+    .card-title { font-size: 12px; font-weight: 700; color: var(--ink); }
+    .card-sub { font-size: 10px; color: var(--ink2); margin-top: 2px; }
+    .badge { font-size: 10px; font-weight: 700; padding: 4px 12px; border-radius: 20px; display: none; }
+    .badge.show { display: inline-block; }
+    .badge.flare { background: rgba(239,68,68,0.18); color: #FCA5A5; border: 1px solid rgba(239,68,68,0.3); }
+    .badge.watch { background: rgba(251,191,36,0.15); color: #FDE68A; border: 1px solid rgba(251,191,36,0.25); }
+    .cw { height: 155px; position: relative; }
+    .cw.sm { height: 80px; }
+    .fc-body { display: flex; gap: 16px; align-items: center; margin-bottom: 10px; }
+    .gauge-wrap { flex-shrink: 0; width: 80px; height: 80px; position: relative; perspective: 300px; }
+    .gauge-ring {
+      width: 100%; height: 100%; border-radius: 50%; transform: rotateX(25deg);
+      background: conic-gradient(var(--gauge-color, #333) var(--gauge-pct, 0%), rgba(255,255,255,0.06) 0%);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 1px rgba(255,255,255,0.1) inset;
+      transition: all 0.5s ease;
+    }
+    .gauge-inner { width: 68%; height: 68%; border-radius: 50%; background: radial-gradient(ellipse at 50% 40%, var(--bg2), var(--bg)); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .gauge-pct { font-size: 14px; font-weight: 900; color: var(--ink); font-family: 'JetBrains Mono', monospace; }
+    .gauge-tiny { font-size: 8px; color: var(--ink2); margin-top: 2px; }
+    .fc-state { font-size: 12px; font-weight: 700; color: var(--ink); }
+    .fc-desc { font-size: 10px; color: var(--ink2); margin-top: 3px; line-height: 1.55; }
+    .log-card { background: var(--surface); backdrop-filter: blur(14px); border-radius: 16px; box-shadow: var(--shadow3d); padding: 14px 16px; border: 1px solid var(--border); }
+    .log-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .log-title { font-size: 12px; font-weight: 700; color: var(--ink); }
+    .log-count { font-size: 10px; color: var(--ink3); font-family: 'JetBrains Mono', monospace; }
+    .log-tbl { width: 100%; border-collapse: collapse; font-size: 11px; }
+    .log-tbl th { color: var(--ink3); font-weight: 600; font-size: 9px; letter-spacing: 0.06em; text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--border); text-transform: uppercase; }
+    .log-tbl td { padding: 8px 8px; border-bottom: 1px solid rgba(255,255,255,0.03); color: var(--ink2); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+    .log-tbl tbody tr:hover td { background: var(--glass2); }
+    .cls-dot { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; font-size: 10px; font-weight: 800; color: #fff; }
+    .cX { background: linear-gradient(135deg,#EF4444,#B91C1C); }
+    .cM { background: linear-gradient(135deg,#F97316,#C2410C); }
+    .cC { background: linear-gradient(135deg,#EAB308,#A16207); }
+    .cB { background: linear-gradient(135deg,#3B82F6,#1D4ED8); }
+    .cA { background: linear-gradient(135deg,#22C55E,#15803D); }
+    .lead-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 9px; font-weight: 700; background: rgba(34,197,94,0.12); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+    .empty-row td { color: var(--ink3); text-align: center; padding: 24px; font-size: 11px; font-family: 'Inter', sans-serif; }
+    .spec-row { display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+    .spec-label { font-size: 9px; color: var(--ink3); width: 60px; text-align: right; font-family: 'JetBrains Mono', monospace; }
+    .spec-track { flex: 1; height: 8px; background: var(--glass); border-radius: 4px; overflow: hidden; }
+    .spec-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+    .spec-val { font-size: 9px; color: var(--ink2); width: 45px; font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+    @keyframes bflash { 0%,100%{ opacity:1; } 50%{ opacity:0.4; } }
+    .flashing { animation: bflash 0.35s ease 5; }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 2: PIPELINE WORKFLOW (from working_flow_diagram.html)
+       ═══════════════════════════════════════════════════════════ */
+    .wf-container { max-width: 920px; margin: 0 auto; padding: 36px 24px 60px; position: relative; z-index: 1; }
+    .wf-title { text-align: center; margin-bottom: 30px; }
+    .wf-title h2 { font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, var(--gold), #f5d680); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .wf-title p { font-size: 0.82rem; color: var(--ink3); margin-top: 4px; }
+    .flow { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0; padding-top: 16px; }
+    .flow .row { display: flex; justify-content: center; gap: 40px; width: 100%; position: relative; z-index: 1; }
+    .wf-connector { display: flex; justify-content: center; align-items: center; height: 44px; position: relative; z-index: 1; }
+    .wf-connector .arrow-line { width: 2px; height: 100%; position: relative; }
+    .wf-connector .arrow-line::before { content:''; position:absolute; top:0; left:50%; transform:translateX(-50%); width:2px; height:100%; background:linear-gradient(to bottom, rgba(224,165,38,0.5), rgba(224,165,38,0.15)); }
+    .wf-connector .arrow-line::after { content:''; position:absolute; bottom:-1px; left:50%; transform:translateX(-50%); width:0; height:0; border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid rgba(224,165,38,0.4); }
+    .wf-connector .label { position:absolute; right:calc(50% + 12px); top:50%; transform:translateY(-50%); font-size:0.62rem; color:var(--ink2); white-space:nowrap; font-weight:500; }
+    .wf-node {
+      width: 320px; border-radius: 14px; padding: 18px 20px;
+      background: rgba(13,27,42,0.85); backdrop-filter: blur(12px);
+      border: 1.5px solid; transition: transform 0.3s, box-shadow 0.3s;
+      color: #fff;
+    }
+    .wf-node:hover { transform: translateY(-3px) scale(1.01); }
+    .wf-node .step-badge { position:absolute; top:-9px; left:18px; font-size:0.58rem; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; padding:2px 9px; border-radius:16px; background:var(--bg); }
+    .wf-node .icon { font-size: 1.3rem; margin-bottom: 4px; }
+    .wf-node h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 3px; }
+    .wf-node p { font-size: 0.72rem; line-height: 1.5; color: rgba(255, 255, 255, 0.7); }
+    .wf-node .func-tag { display:inline-block; margin-top:6px; font-size:0.62rem; font-family:'JetBrains Mono',monospace; padding:2px 7px; border-radius:5px; background:rgba(255,255,255,0.08); color:rgba(255, 255, 255, 0.6); border:1px solid rgba(255,255,255,0.12); }
+    .wf-node.gold   { border-color:rgba(224,165,38,0.4); } .wf-node.gold:hover { box-shadow:0 0 30px rgba(224,165,38,0.12); } .wf-node.gold h3 { color:#f5d680; } .wf-node.gold .step-badge { color:var(--gold); border:1px solid rgba(224,165,38,0.35); }
+    .wf-node.blue   { border-color:rgba(56,189,248,0.35); } .wf-node.blue:hover { box-shadow:0 0 30px rgba(56,189,248,0.1); } .wf-node.blue h3 { color:#7dd3fc; } .wf-node.blue .step-badge { color:var(--sky); border:1px solid rgba(56,189,248,0.35); }
+    .wf-node.pink   { border-color:rgba(244,114,182,0.35); } .wf-node.pink:hover { box-shadow:0 0 30px rgba(244,114,182,0.1); } .wf-node.pink h3 { color:#f9a8d4; } .wf-node.pink .step-badge { color:var(--pink); border:1px solid rgba(244,114,182,0.35); }
+    .wf-node.wf-green { border-color:rgba(74,222,128,0.35); } .wf-node.wf-green:hover { box-shadow:0 0 30px rgba(74,222,128,0.1); } .wf-node.wf-green h3 { color:#86efac; } .wf-node.wf-green .step-badge { color:#4ade80; border:1px solid rgba(74,222,128,0.35); }
+    .wf-node.output { width:260px; text-align:center; border-color:rgba(224,165,38,0.5); background:linear-gradient(135deg,rgba(224,165,38,0.1),rgba(224,165,38,0.03)); box-shadow:0 0 40px rgba(224,165,38,0.1); color: var(--ink); }
+    .wf-node.output h3 { color:var(--gold); font-size:1rem; }
+    .parallel-label { text-align:center; font-size:0.62rem; color:var(--ink3); font-weight:600; letter-spacing:1.2px; text-transform:uppercase; margin:3px 0; z-index:1; position:relative; }
+    @keyframes dash-flow { to { stroke-dashoffset: -20; } }
+    .flow-line { stroke-dasharray: 8 6; animation: dash-flow 1.2s linear infinite; }
+
+    /* ═══════════════════════════════════════════════════════════
+       SECTION 3: FLARE OCCURRENCE (from flare_occurrence.html)
+       ═══════════════════════════════════════════════════════════ */
+    .fo-container { max-width: 1100px; margin: 0 auto; padding: 36px 24px 60px; position: relative; z-index: 1; }
+    .fo-section { margin-bottom: 32px; }
+    .fo-section-title { font-size: 1rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+    .fo-section-title .fo-line { flex:1; height:1px; background:linear-gradient(90deg, var(--border), transparent); }
+
+    /* Class table */
+    .class-table { width:100%; border-collapse:collapse; font-size:0.8rem; }
+    .class-table th { text-align:left; padding:9px 12px; font-weight:600; color:var(--ink2); font-size:0.7rem; letter-spacing:0.4px; text-transform:uppercase; border-bottom:1px solid var(--border); }
+    .class-table td { padding:10px 12px; border-bottom:1px solid rgba(255,255,255,0.03); }
+    .class-table tr:hover td { background:rgba(255,255,255,0.02); }
+    .class-table .cls { font-weight:800; font-size:1.05rem; }
+    .class-table .bar { height:5px; border-radius:3px; background:rgba(0,0,0,0.06); overflow:hidden; }
+    .class-table .bar-fill { height:100%; border-radius:3px; }
+
+    /* Anatomy cards */
+    .anatomy-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:14px; }
+    .anatomy-card { padding:18px 20px; border-radius:14px; background:var(--surface); border:1px solid var(--border); backdrop-filter:blur(10px); transition:transform 0.3s; }
+    .anatomy-card:hover { transform:translateY(-3px); }
+    .anatomy-card h4 { font-size:0.85rem; font-weight:700; margin-bottom:6px; display:flex; align-items:center; gap:7px; }
+    .anatomy-card p { font-size:0.75rem; line-height:1.6; color:var(--ink2); }
+    .anatomy-card .tag { display:inline-block; margin-top:7px; font-family:'JetBrains Mono',monospace; font-size:0.62rem; padding:2px 7px; border-radius:5px; background:rgba(0,0,0,0.03); color:var(--ink3); border:1px solid rgba(15,23,42,0.08); }
+
+    /* Timeline */
+    .timeline { position:relative; padding:0 0 0 30px; }
+    .timeline::before { content:''; position:absolute; left:13px; top:6px; bottom:6px; width:2px; background:linear-gradient(to bottom, transparent, rgba(224,165,38,0.25) 10%, rgba(56,189,248,0.25) 30%, rgba(244,114,182,0.25) 50%, rgba(239,68,68,0.25) 70%, rgba(224,165,38,0.25) 90%, transparent); }
+    .timeline-event { position:relative; margin-bottom:16px; padding:16px 20px; border-radius:14px; background:var(--surface); backdrop-filter:blur(10px); border:1px solid; transition:transform 0.3s; }
+    .timeline-event:hover { transform:translateX(4px); }
+    .timeline-event::before { content:''; position:absolute; left:-23px; top:20px; width:10px; height:10px; border-radius:50%; border:2px solid; background:var(--bg); }
+    .timeline-event .event-header { display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
+    .timeline-event .class-badge { font-size:0.72rem; font-weight:800; padding:3px 9px; border-radius:18px; letter-spacing:0.4px; }
+    .timeline-event .time-label { font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:var(--ink2); }
+    .timeline-event .peak-val { font-size:0.7rem; color:var(--ink3); margin-left:auto; }
+    .timeline-event .desc { font-size:0.77rem; line-height:1.6; color:var(--ink2); }
+    .timeline-event .desc strong { color:var(--ink); }
+    .ev-C  { border-color:rgba(56,189,248,0.25); } .ev-C:hover { box-shadow:0 0 24px rgba(56,189,248,0.08); } .ev-C::before { border-color:var(--sky); } .ev-C .class-badge { background:rgba(56,189,248,0.12); color:var(--sky); }
+    .ev-M  { border-color:rgba(251,191,36,0.25); } .ev-M:hover { box-shadow:0 0 24px rgba(251,191,36,0.08); } .ev-M::before { border-color:var(--amber); } .ev-M .class-badge { background:rgba(251,191,36,0.12); color:var(--amber); }
+    .ev-B  { border-color:rgba(74,222,128,0.25); } .ev-B:hover { box-shadow:0 0 24px rgba(74,222,128,0.08); } .ev-B::before { border-color:var(--green); } .ev-B .class-badge { background:rgba(74,222,128,0.12); color:var(--green); }
+    .ev-X  { border-color:rgba(239,68,68,0.3); }  .ev-X:hover { box-shadow:0 0 24px rgba(239,68,68,0.12); } .ev-X::before { border-color:var(--red); background:var(--red); } .ev-X .class-badge { background:rgba(239,68,68,0.12); color:var(--red); }
+
+    /* Stages row */
+    .stages { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; }
+    .stage { padding:16px; border-radius:12px; background:var(--surface); border:1px solid var(--border); text-align:center; transition:transform 0.3s; }
+    .stage:hover { transform:scale(1.03); }
+    .stage .num { font-size:1.8rem; font-weight:900; background:linear-gradient(135deg,var(--purple),var(--sky)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+    .stage h4 { font-size:0.78rem; font-weight:600; margin:4px 0 3px; }
+    .stage p { font-size:0.7rem; color:var(--ink2); line-height:1.5; }
+
+    /* Precursor flow */
+    .precursor-flow { display:flex; gap:10px; flex-wrap:wrap; align-items:stretch; margin-bottom:14px; }
+    .precursor-step { flex:1; min-width:160px; padding:14px; border-radius:12px; background:var(--surface); border:1px solid var(--border); position:relative; }
+    .precursor-step::after { content:'->'; position:absolute; right:-10px; top:50%; transform:translateY(-50%); color:var(--ink3); font-size:0.85rem; }
+    .precursor-step:last-child::after { content:none; }
+    .precursor-step h4 { font-size:0.75rem; font-weight:700; margin-bottom:3px; color:var(--purple); }
+    .precursor-step p { font-size:0.7rem; color:var(--ink2); line-height:1.5; }
+    .precursor-step .time-tag { display:inline-block; margin-top:5px; font-size:0.62rem; padding:2px 7px; border-radius:4px; background:rgba(167,139,250,0.1); color:var(--purple); font-weight:600; }
+
+    /* Flare chart */
+    .fo-chart-container { padding:18px; border-radius:14px; background:var(--surface); border:1px solid var(--border); }
+    .fo-chart-container canvas { width:100% !important; height:280px !important; }
+    .chart-legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:10px; justify-content:center; }
+    .chart-legend span { font-size:0.68rem; color:var(--ink2); display:flex; align-items:center; gap:4px; }
+    .chart-legend .dot { width:7px; height:7px; border-radius:50%; }
+
+    /* ═══════════════════════════════════════════════════════════
+       FOOTER
+       ═══════════════════════════════════════════════════════════ */
+    .page-footer { text-align:center; padding:24px; font-size:0.7rem; color:var(--ink3); border-top:1px solid var(--border); position:relative; z-index:1; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(15,23,42,0.15); border-radius: 3px; }
+
+    @media (max-width: 800px) {
+      .mon-layout { grid-template-columns: 1fr; }
+      .mon-aside { display: none; }
+      .nav-tabs { gap: 2px; }
+      .nav-tab { padding: 6px 10px; font-size: 10px; }
+      .flow .row { flex-direction: column; align-items: center; gap: 10px; }
+      .wf-node { width: 90%; max-width: 320px; }
+      .precursor-flow { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Starfield -->
+<div id="starfield"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOP NAVIGATION
+     ═══════════════════════════════════════════════════════════ -->
+<nav class="top-nav">
+  <div class="nav-sun"></div>
+  <div class="nav-brand">
+    <h1>Aditya-L1 Solar Flare Pipeline</h1>
+    <p>Bharatiya Antariksh Hackathon 2026</p>
+  </div>
+  <span class="nav-spacer"></span>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchSection('monitor', this)"><span class="tab-icon">📡</span>Live Monitor</button>
+    <button class="nav-tab" onclick="switchSection('workflow', this)"><span class="tab-icon">⚙️</span>Pipeline Flow</button>
+    <button class="nav-tab" onclick="switchSection('occurrence', this)"><span class="tab-icon">🔥</span>Flare Occurrence</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 1: LIVE MONITOR
+     ═══════════════════════════════════════════════════════════ -->
+<div id="sec-monitor" class="section-page active">
+  <div class="monitor-bar">
+    <span id="mon-status" class="ready">&#9679; Ready</span>
+    <span class="mon-spacer"></span>
+    <button id="btn-play" class="hbtn play" disabled onclick="togglePlay()">&#9654; Play</button>
+    <button id="btn-reset" class="hbtn" disabled onclick="onReset()">&#8634; Reset</button>
+  </div>
+  <div class="mon-layout">
+    <aside class="mon-aside">
+      <div class="sb-card">
+        <div class="sb-lbl">Data Source</div>
+        <button class="btn-primary" onclick="onDemo()">&#9670; Load Demo Data</button>
+        <label class="btn-upload">
+          &uarr; Upload JSON File
+          <input type="file" accept=".json" onchange="onUpload(event)">
+        </label>
+        <p class="hint">Convert ISSDC FITS files with <code>convert_fits.py</code>, then upload the output JSON here.</p>
+      </div>
+      <div class="sb-card">
+        <div class="sb-lbl">Detection Settings</div>
+        <div class="sl-row"><span>Threshold multiplier</span><span class="sl-val" id="v-thresh">3.0&times;</span></div>
+        <input type="range" min="1.5" max="7" step="0.5" value="3" oninput="onThresh(this.value)">
+        <div class="sl-row"><span>BG window</span><span class="sl-dim" id="v-bg">300 pts</span></div>
+        <input type="range" min="60" max="600" step="30" value="300" oninput="onBgWin(this.value)">
+        <div class="sl-row"><span>Playback speed</span><span class="sl-dim" id="v-spd">30&times;</span></div>
+        <input type="range" min="5" max="150" step="5" value="30" oninput="onSpeed(this.value)">
+        <div class="pb-note" id="progress">&mdash; / &mdash;</div>
+      </div>
+      <div class="sb-card">
+        <div class="sb-lbl">Live Readings</div>
+        <div class="stat-grid">
+          <div class="stat-box"><div class="stat-v" id="sv-s">&mdash;</div><div class="stat-k">SoLEXS cts/s</div></div>
+          <div class="stat-box"><div class="stat-v" id="sv-h">&mdash;</div><div class="stat-k">HEL1OS cts/s</div></div>
+          <div class="stat-box"><div class="stat-v" id="sv-p" style="color:var(--purple)">&mdash;</div><div class="stat-k">Forecast prob.</div></div>
+          <div class="stat-box"><div class="stat-v" id="sv-n">0</div><div class="stat-k">Flares found</div></div>
+          <div class="stat-box stat-full"><div class="stat-row-flat"><span class="stat-k" style="font-size:10px">In flare now</span><span class="stat-v" id="sv-if" style="font-size:14px">No</span></div></div>
+        </div>
+      </div>
+      <div class="sb-card">
+        <div class="sb-lbl">Mission Info</div>
+        <div class="mi-row"><span class="mi-k">Spacecraft</span><span class="mi-v">Aditya-L1</span></div>
+        <div class="mi-row"><span class="mi-k">Agency</span><span class="mi-v">ISRO</span></div>
+        <div class="mi-row"><span class="mi-k">Orbit</span><span class="mi-v">L1 Halo Orbit</span></div>
+        <div class="mi-row"><span class="mi-k">Launch</span><span class="mi-v">02-Sep-2023</span></div>
+        <div class="mi-row"><span class="mi-k">Distance</span><span class="mi-v">~1.5M km</span></div>
+        <div class="mi-row"><span class="mi-k">Payloads</span><span class="mi-v">7 instruments</span></div>
+      </div>
+      <div class="sb-card">
+        <div class="sb-lbl">Solar Activity</div>
+        <div class="sa-label-row"><span>Solar Cycle Phase</span><span style="color:var(--amber);font-weight:600">Maximum</span></div>
+        <div class="sa-meter"><div class="sa-fill" style="width:82%;background:linear-gradient(90deg,var(--amber),var(--red))"></div></div>
+        <div class="sa-label-row" style="margin-top:6px"><span>Sunspot Number</span><span id="sa-ssn" style="color:var(--ink);font-weight:600;font-family:'JetBrains Mono',monospace">&mdash;</span></div>
+        <div class="sa-meter"><div class="sa-fill" id="sa-ssn-bar" style="width:0%;background:linear-gradient(90deg,var(--sky),var(--purple))"></div></div>
+        <div class="sa-label-row" style="margin-top:6px"><span>Kp Index</span><span id="sa-kp" style="color:var(--green);font-weight:600;font-family:'JetBrains Mono',monospace">&mdash;</span></div>
+        <div class="sa-meter"><div class="sa-fill" id="sa-kp-bar" style="width:0%;background:linear-gradient(90deg,var(--green),var(--amber),var(--red))"></div></div>
+      </div>
+    </aside>
+    <main class="mon-main">
+      <div class="chart-card solexs" id="p-solexs">
+        <div class="card-head"><div><div class="card-title">SoLEXS &mdash; Soft X-ray Light Curves</div><div class="card-sub">Thermal plasma emission &middot; log scale &middot; 3 energy channels</div></div><span class="badge" id="b-solexs">&#9889; Flare</span></div>
+        <div class="cw"><canvas id="c-solexs"></canvas></div>
+      </div>
+      <div class="chart-card helios" id="p-helios">
+        <div class="card-head"><div><div class="card-title">HEL1OS &mdash; Hard X-ray Light Curves</div><div class="card-sub">Non-thermal emission &middot; log scale &middot; 4 energy channels</div></div><span class="badge" id="b-helios">&#9650; Precursor</span></div>
+        <div class="cw"><canvas id="c-helios"></canvas></div>
+      </div>
+      <div class="chart-card spectrum" id="p-spectrum">
+        <div class="card-head"><div><div class="card-title">Real-time Energy Spectrum</div><div class="card-sub">Instantaneous keV channel distribution</div></div></div>
+        <div id="spectrum-bars">
+          <div class="spec-row"><span class="spec-label" style="color:var(--s0)">2-3 keV</span><div class="spec-track"><div class="spec-fill" id="sp-s0" style="width:0%;background:var(--s0)"></div></div><span class="spec-val" id="sp-s0-v">&mdash;</span></div>
+          <div class="spec-row"><span class="spec-label" style="color:var(--s1)">3-6 keV</span><div class="spec-track"><div class="spec-fill" id="sp-s1" style="width:0%;background:var(--s1)"></div></div><span class="spec-val" id="sp-s1-v">&mdash;</span></div>
+          <div class="spec-row"><span class="spec-label" style="color:var(--s2)">6-10 keV</span><div class="spec-track"><div class="spec-fill" id="sp-s2" style="width:0%;background:var(--s2)"></div></div><span class="spec-val" id="sp-s2-v">&mdash;</span></div>
+          <div style="height:5px"></div>
+          <div class="spec-row"><span class="spec-label" style="color:var(--h0)">6-10 keV</span><div class="spec-track"><div class="spec-fill" id="sp-h0" style="width:0%;background:var(--h0)"></div></div><span class="spec-val" id="sp-h0-v">&mdash;</span></div>
+          <div class="spec-row"><span class="spec-label" style="color:var(--h1)">10-15 keV</span><div class="spec-track"><div class="spec-fill" id="sp-h1" style="width:0%;background:var(--h1)"></div></div><span class="spec-val" id="sp-h1-v">&mdash;</span></div>
+          <div class="spec-row"><span class="spec-label" style="color:var(--h2)">15-25 keV</span><div class="spec-track"><div class="spec-fill" id="sp-h2" style="width:0%;background:var(--h2)"></div></div><span class="spec-val" id="sp-h2-v">&mdash;</span></div>
+          <div class="spec-row"><span class="spec-label" style="color:var(--h3)">25-40 keV</span><div class="spec-track"><div class="spec-fill" id="sp-h3" style="width:0%;background:var(--h3)"></div></div><span class="spec-val" id="sp-h3-v">&mdash;</span></div>
+        </div>
+      </div>
+      <div class="chart-card forecast" id="p-forecast">
+        <div class="card-head"><div><div class="card-title">Pre-flare Forecast Probability</div><div class="card-sub">Alert triggers above 55%</div></div><span class="badge" id="b-forecast">&#9650; Alert</span></div>
+        <div class="fc-body">
+          <div class="gauge-wrap"><div class="gauge-ring" id="gauge-ring"><div class="gauge-inner"><div class="gauge-pct" id="gauge-num">&mdash;</div><div class="gauge-tiny">prob.</div></div></div></div>
+          <div class="fc-text"><div class="fc-state" id="fc-state">No precursor signal</div><div class="fc-desc" id="fc-desc">Load data and press Play to begin monitoring.</div></div>
+        </div>
+        <div class="cw sm"><canvas id="c-forecast"></canvas></div>
+      </div>
+      <div class="log-card">
+        <div class="log-head"><span class="log-title">&#9889; Flare Event Catalog</span><span class="log-count" id="log-count">0 events detected</span></div>
+        <table class="log-tbl"><thead><tr><th>Class</th><th>Peak Time</th><th>Intensity</th><th>Est. Energy</th><th>Peak Flux</th><th>Duration</th><th>Lead Time</th><th>Channel</th></tr></thead>
+        <tbody id="log-body"><tr class="empty-row"><td colspan="8">No flares detected yet &mdash; load data and press Play</td></tr></tbody></table>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 2: PIPELINE WORKFLOW
+     ═══════════════════════════════════════════════════════════ -->
+<div id="sec-workflow" class="section-page">
+  <div class="wf-container">
+    <div class="wf-title">
+      <h2>&#9788; Pipeline Working Flow</h2>
+      <p>7 sequential stages from data ingestion to flare probability output</p>
+    </div>
+    <div class="flow" id="flow">
+      <div class="row"><div class="wf-node gold" id="n1" style="position:relative"><span class="step-badge">Step 1</span><span class="icon">&#128752;</span><h3>Data Ingestion</h3><p>Load Aditya-L1 telemetry &mdash; synthetic demo or real ISSDC FITS-to-JSON. Produces 3 SoLEXS + 4 HEL1OS energy-channel time-series.</p><span class="func-tag">generate_synthetic() / load_json()</span></div></div>
+      <div class="wf-connector"><div class="arrow-line"></div><span class="label">raw time-series</span></div>
+      <div class="row"><div class="wf-node gold" id="n2" style="position:relative"><span class="step-badge">Step 2</span><span class="icon">&#9881;</span><h3>Preprocessing</h3><p>Rolling 10th-percentile background estimation per channel. Outputs normalised flux ratios (flux / background) for both detector paths.</p><span class="func-tag">preprocess() &rarr; rolling_background()</span></div></div>
+      <div class="wf-connector"><div class="arrow-line"></div></div>
+      <div class="parallel-label">&#10216; parallel detection &#10217;</div>
+      <div class="row" id="parallel-row">
+        <div class="wf-node blue" id="n3" style="position:relative"><span class="step-badge">Step 3</span><span class="icon">&#128200;</span><h3>SXR Flare Detection</h3><p>Threshold &times; background trigger on SoLEXS 6-10 keV while flux is rising. Classifies each event as A/B/C/M/X by peak magnitude.</p><span class="func-tag">detect_sxr()</span></div>
+        <div class="wf-node pink" id="n4" style="position:relative"><span class="step-badge">Step 4</span><span class="icon">&#9889;</span><h3>HXR Flare Detection</h3><p>Peak-finding on HEL1OS 10-15 keV with prominence threshold tuned to quiet-time noise. Captures impulsive hard X-ray bursts.</p><span class="func-tag">detect_hxr() &rarr; find_peaks()</span></div>
+      </div>
+      <div class="wf-connector"><div class="arrow-line"></div></div>
+      <div class="parallel-label">&#10216; merge &#10217;</div>
+      <div class="row"><div class="wf-node gold" id="n5" style="position:relative"><span class="step-badge">Step 5</span><span class="icon">&#128203;</span><h3>Master Catalogue</h3><p>Matches SXR + HXR events within &plusmn;400 s window. Records the SXR-HXR time lag &mdash; a key Neupert-effect feature.</p><span class="func-tag">merge_catalogues()</span></div></div>
+      <div class="wf-connector"><div class="arrow-line"></div><span class="label">merged events</span></div>
+      <div class="row"><div class="wf-node gold" id="n6" style="position:relative"><span class="step-badge">Step 6</span><span class="icon">&#128300;</span><h3>Physics Feature Engineering</h3><p>Extracts pre-peak features only (no leakage): Neupert ratio, cross-correlation lag, shape features, rolling statistics, pre-flare enhancement.</p><span class="func-tag">compute_event_features()</span></div></div>
+      <div class="wf-connector"><div class="arrow-line"></div><span class="label">feature matrix</span></div>
+      <div class="row"><div class="wf-node wf-green" id="n7" style="position:relative"><span class="step-badge">Step 7</span><span class="icon">&#129302;</span><h3>AI Forecasting Models</h3><p>Sliding-window labelled matrix (label = 1 if flare within 30 min). Trains XGBoost + LSTM on a temporal split &mdash; no data leakage.</p><span class="func-tag">train_xgboost() / train_lstm()</span></div></div>
+      <div class="wf-connector"><div class="arrow-line"></div><span class="label">predictions</span></div>
+      <div class="row"><div class="wf-node output" style="position:relative"><span class="icon">&#127919;</span><h3>Output</h3><p style="color:var(--ink2)">Flare Probability &middot; Lead Time &middot; Flare Class</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 3: FLARE OCCURRENCE
+     ═══════════════════════════════════════════════════════════ -->
+<div id="sec-occurrence" class="section-page">
+  <div class="fo-container">
+
+    <!-- Classification -->
+    <div class="fo-section">
+      <div class="fo-section-title"><span>&#128293;</span> Flare Classification &mdash; When Can They Occur?<span class="fo-line"></span></div>
+      <div style="padding:14px 18px; border-radius:12px; background:var(--surface); border:1px solid var(--border); margin-bottom:14px;">
+        <p style="font-size:0.8rem; color:var(--ink2); line-height:1.7;">Solar flares are classified by <strong style="color:var(--ink)">peak X-ray flux</strong>. In this project, class is determined by the <strong style="color:var(--ink)">SoLEXS 6-10 keV ratio</strong> (peak flux / rolling background). Flares can occur at <strong style="color:var(--amber)">any time</strong> during observation.</p>
+      </div>
+      <table class="class-table">
+        <thead><tr><th>Class</th><th>Peak Ratio</th><th>Intensity</th><th>Rise Time</th><th>Impact</th><th style="width:100px">Power</th></tr></thead>
+        <tbody>
+          <tr><td><span class="cls" style="color:#ef4444">X</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem">400&times; - &infin;</td><td>Extreme</td><td>~55 s</td><td style="color:var(--red)">Radio blackouts, satellite damage</td><td><div class="bar"><div class="bar-fill" style="width:100%;background:linear-gradient(90deg,#ef4444,#f87171)"></div></div></td></tr>
+          <tr><td><span class="cls" style="color:#fbbf24">M</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem">40&times; - 400&times;</td><td>Major</td><td>~85 s</td><td style="color:var(--amber)">Brief radio blackouts</td><td><div class="bar"><div class="bar-fill" style="width:55%;background:linear-gradient(90deg,#fbbf24,#fcd34d)"></div></div></td></tr>
+          <tr><td><span class="cls" style="color:#38bdf8">C</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem">8&times; - 40&times;</td><td>Moderate</td><td>~180-220 s</td><td style="color:var(--sky)">Minor radio effects</td><td><div class="bar"><div class="bar-fill" style="width:25%;background:linear-gradient(90deg,#38bdf8,#7dd3fc)"></div></div></td></tr>
+          <tr><td><span class="cls" style="color:#4ade80">B</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem">2.8&times; - 8&times;</td><td>Weak</td><td>~160 s</td><td style="color:var(--green)">No Earth impact</td><td><div class="bar"><div class="bar-fill" style="width:10%;background:linear-gradient(90deg,#4ade80,#86efac)"></div></div></td></tr>
+          <tr><td><span class="cls" style="color:var(--ink3)">A</span></td><td style="font-family:'JetBrains Mono',monospace;font-size:0.75rem">0 - 2.8&times;</td><td>Micro</td><td>Variable</td><td style="color:var(--ink3)">Background-level</td><td><div class="bar"><div class="bar-fill" style="width:3%;background:var(--ink3)"></div></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Anatomy -->
+    <div class="fo-section">
+      <div class="fo-section-title"><span>&#9889;</span> How a Flare Happens &mdash; Anatomy<span class="fo-line"></span></div>
+      <div class="anatomy-grid">
+        <div class="anatomy-card" style="border-color:rgba(167,139,250,0.3)"><h4 style="color:var(--purple)">&#128225; 1. Pre-Flare Enhancement</h4><p><strong style="color:var(--ink)">~15 min before peak</strong>, SoLEXS flux begins a gradual rise &mdash; a Gaussian bump centred ~900 s before peak. This is the <strong style="color:var(--purple)">precursor signal</strong>. SoLEXS channels rise by up to <strong>13%</strong>.</p><span class="tag">Gaussian: e^{-(t+900)^2 / 2*450^2}</span></div>
+        <div class="anatomy-card" style="border-color:rgba(244,114,182,0.3)"><h4 style="color:var(--pink)">&#9889; 2. Hard X-ray Burst</h4><p><strong style="color:var(--ink)">At the peak</strong>, HEL1OS detects a sharp impulsive spike. The burst is <strong>~5&times; narrower</strong> than SXR. HXR typically <strong style="color:var(--pink)">leads</strong> the SXR peak &mdash; the <strong>Neupert effect</strong>.</p><span class="tag">HXR rise = 0.22 &times; SXR rise</span></div>
+        <div class="anatomy-card" style="border-color:rgba(56,189,248,0.3)"><h4 style="color:var(--sky)">&#128200; 3. Soft X-ray Peak</h4><p>SoLEXS flux rises as a <strong>Gaussian</strong> then decays <strong>exponentially</strong>. Peak ratio above background determines <strong style="color:var(--sky)">flare class</strong> (A/B/C/M/X).</p><span class="tag">Rise: Gaussian | Decay: e^{-t/tau}</span></div>
+        <div class="anatomy-card" style="border-color:rgba(74,222,128,0.3)"><h4 style="color:var(--green)">&#128201; 4. Decay &amp; Return</h4><p>Flux decays exponentially back to background. Decay times: <strong>300 s</strong> (X-class) to <strong>1100 s</strong> (C-class). Detection ends when ratio drops below <strong style="color:var(--green)">45% of threshold</strong>.</p><span class="tag">End: ratio &lt; 0.45 &times; threshold</span></div>
+      </div>
+    </div>
+
+    <!-- Detection -->
+    <div class="fo-section">
+      <div class="fo-section-title"><span>&#128300;</span> How the Project Detects Flares<span class="fo-line"></span></div>
+      <div class="precursor-flow">
+        <div class="precursor-step"><h4>SXR Monitoring</h4><p>Continuously computes <strong>flux / rolling background</strong> on 6-10 keV channel.</p><span class="time-tag">Every 4 s cadence</span></div>
+        <div class="precursor-step"><h4>Threshold Trigger</h4><p>When ratio exceeds <strong>3.0&times;</strong> AND flux is <strong>rising</strong>, a flare is flagged.</p><span class="time-tag">SXR_THRESHOLD = 3.0</span></div>
+        <div class="precursor-step"><h4>HXR Spike Search</h4><p><strong>find_peaks()</strong> scans HEL1OS for bursts above 4&times; noise floor.</p><span class="time-tag">HXR_MIN_PROM = 4.0</span></div>
+        <div class="precursor-step"><h4>Event Matching</h4><p>SXR and HXR matched within <strong>&plusmn;400 s</strong>. Time lag recorded.</p><span class="time-tag">MERGE = 400 s</span></div>
+        <div class="precursor-step"><h4 style="color:var(--green)">Forecast</h4><p>AI predicts flare probability <strong>30 min ahead</strong>.</p><span class="time-tag" style="background:rgba(74,222,128,0.1);color:var(--green)">HORIZON = 30 min</span></div>
+      </div>
+      <div class="stages">
+        <div class="stage"><div class="num">5/5</div><h4>Flares Detected</h4><p>100% detection rate</p></div>
+        <div class="stage"><div class="num" style="background:linear-gradient(135deg,var(--amber),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent">95.7%</div><h4>Precision</h4><p>XGBoost forecast accuracy</p></div>
+        <div class="stage"><div class="num" style="background:linear-gradient(135deg,var(--green),#6ee7b7);-webkit-background-clip:text;-webkit-text-fill-color:transparent">0.997</div><h4>AUC Score</h4><p>Near-perfect separation</p></div>
+        <div class="stage"><div class="num" style="background:linear-gradient(135deg,var(--pink),#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">8-12s</div><h4>HXR Lead</h4><p>Neupert effect lag</p></div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="fo-section">
+      <div class="fo-section-title"><span>&#128336;</span> Timeline &mdash; The 5 Demo Flares<span class="fo-line"></span></div>
+      <div class="timeline">
+        <div class="timeline-event ev-C"><div class="event-header"><span class="class-badge">C-CLASS</span><span class="time-label">&#9201; Peak at 00:30:00 (1800 s)</span><span class="peak-val">15.5&times; bg</span></div><p class="desc"><strong>Moderate flare</strong> &mdash; rise 220 s, decay 1100 s. Pre-flare SXR enhancement visible ~15 min before. HXR leads by <strong>8 s</strong>.</p></div>
+        <div class="timeline-event ev-M"><div class="event-header"><span class="class-badge">M-CLASS</span><span class="time-label">&#9201; Peak at 01:40:00 (6000 s)</span><span class="peak-val">49.1&times; bg</span></div><p class="desc"><strong>Major flare</strong> &mdash; fast rise (85 s). Very strong precursor signal. HXR coincides exactly with SXR (<strong>lag = 0 s</strong>).</p></div>
+        <div class="timeline-event ev-B"><div class="event-header"><span class="class-badge">B-CLASS</span><span class="time-label">&#9201; Peak at 03:00:00 (10800 s)</span><span class="peak-val">7.9&times; bg</span></div><p class="desc"><strong>Weak flare</strong> &mdash; hardest to detect. <strong style="color:var(--amber)">No pre-flare enhancement</strong>. HXR leads by <strong>12 s</strong>. Successfully detected despite being near the B/C boundary.</p></div>
+        <div class="timeline-event ev-X"><div class="event-header"><span class="class-badge">X-CLASS</span><span class="time-label">&#9201; Peak at 04:20:00 (15600 s)</span><span class="peak-val">463.3&times; bg</span></div><p class="desc"><strong style="color:var(--red)">Extreme flare!</strong> &mdash; fastest rise (55 s). Enormous magnitudes: SXR 450&times;, HXR 900&times;. <strong>Strongest event in the dataset.</strong></p></div>
+        <div class="timeline-event ev-C"><div class="event-header"><span class="class-badge">C-CLASS</span><span class="time-label">&#9201; Peak at 05:30:00 (19800 s)</span><span class="peak-val">13.6&times; bg</span></div><p class="desc"><strong>Moderate flare</strong> &mdash; rise 180 s, decay 950 s. Pre-flare enhancement present. HXR leads by <strong>12 s</strong>. Final event validates consistency.</p></div>
+      </div>
+    </div>
+
+    <!-- Flare Profile Chart -->
+    <div class="fo-section">
+      <div class="fo-section-title"><span>&#128202;</span> Flare Profile &mdash; SXR vs HXR Signal Shape<span class="fo-line"></span></div>
+      <div class="fo-chart-container">
+        <canvas id="flare-chart"></canvas>
+        <div class="chart-legend">
+          <span><span class="dot" style="background:var(--sky)"></span> SXR (Soft X-ray) &mdash; Gaussian rise, exponential decay</span>
+          <span><span class="dot" style="background:var(--pink)"></span> HXR (Hard X-ray) &mdash; Impulsive spike (5&times; narrower)</span>
+          <span><span class="dot" style="background:var(--purple);opacity:0.5"></span> Pre-flare enhancement zone</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="page-footer">Aditya-L1 Solar Flare Detection &amp; Forecasting Pipeline &middot; Bharatiya Antariksh Hackathon 2026 &middot; ISRO</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SCRIPTS
+     ═══════════════════════════════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════
+   NAVIGATION
+   ═══════════════════════════════════════════════════ */
+function switchSection(name, btn) {
+  document.querySelectorAll('.section-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  btn.classList.add('active');
+  // Lazy-init flare chart when occurrence tab shown
+  if (name === 'occurrence' && !window._flareChartInit) initFlareChart();
+  // Redraw workflow connectors
+  if (name === 'workflow') setTimeout(drawConnectors, 100);
+}
+
+/* ═══════════════════════════════════════════════════
+   STARFIELD
+   ═══════════════════════════════════════════════════ */
+(function(){
+  const sf = document.getElementById('starfield');
+  for(let i = 0; i < 100; i++){
+    const s = document.createElement('div');
+    s.className = 'star';
+    const sz = Math.random() < 0.15 ? 2 : 1;
+    s.style.cssText = `width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;--o:${0.3+Math.random()*0.6};--dur:${2+Math.random()*4}s;--delay:${Math.random()*4}s;`;
+    sf.appendChild(s);
+  }
+})();
+
+/* ═══════════════════════════════════════════════════
+   MONITOR — All logic from solar_flare_monitor.html
+   ═══════════════════════════════════════════════════ */
+const S_LABELS=['2-3 keV','3-6 keV','6-10 keV'];
+const H_LABELS=['6-10 keV','10-15 keV','15-25 keV','25-40 keV'];
+const S_COLORS=['#FF9933','#FF671F','#EC407A'];
+const H_COLORS=['#1E88E5','#5C6BC0','#2E7D32','#FF671F'];
+const MAX_PTS=450;
+
+const A={data:null,idx:0,playing:false,speed:30,threshold:3.0,bgWin:300,inFlare:false,flareStart:0,forecastAlerted:false,forecastAlertIdx:null,events:[],probHist:[],bgS:null,animId:null};
+
+let actx=null;
+function beep(hz=440,ms=220,vol=.22){
+  try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();const o=actx.createOscillator(),g=actx.createGain();o.connect(g);g.connect(actx.destination);o.frequency.value=hz;g.gain.setValueAtTime(vol,actx.currentTime);g.gain.exponentialRampToValueAtTime(.001,actx.currentTime+ms/1000);o.start();o.stop(actx.currentTime+ms/1000);}catch(_){}
+}
+
+function genSynthetic(){
+  const DT=4,N=1800;const time=Array.from({length:N},(_,i)=>i*DT);
+  const BS=[1800,700,260],BH=[110,48,20,8];
+  const s=BS.map(b=>time.map(()=>Math.max(1,b+(Math.random()-.5)*2*Math.sqrt(b))));
+  const h=BH.map(b=>time.map(()=>Math.max(1,b+(Math.random()-.5)*2*Math.sqrt(b))));
+  const FL=[{pT:1860,rT:220,dT:1100,sM:14,hM:25,pre:true},{pT:3960,rT:85,dT:580,sM:70,hM:175,pre:true},{pT:6120,rT:160,dT:820,sM:7,hM:11,pre:false}];
+  for(const f of FL){const pI=Math.round(f.pT/DT);for(let i=0;i<N;i++){const dt=(i-pI)*DT;const sp=dt<0?Math.exp(-(dt*dt)/(2*f.rT*f.rT)):Math.exp(-dt/f.dT);const hr=f.rT*.22,hd=f.dT*.13;const hp=dt<0?Math.exp(-(dt*dt)/(2*hr*hr)):Math.exp(-dt/hd);s[0][i]+=BS[0]*f.sM*.38*sp;s[1][i]+=BS[1]*f.sM*.68*sp;s[2][i]+=BS[2]*f.sM*sp;h[0][i]+=BH[0]*f.hM*.85*hp;h[1][i]+=BH[1]*f.hM*hp;h[2][i]+=BH[2]*f.hM*.6*hp;h[3][i]+=BH[3]*f.hM*.32*hp;if(f.pre&&dt>=-2100&&dt<-f.rT*2.5){const pe=.13*Math.exp(-((dt+900)**2)/(2*450*450));if(pe>5e-4){s[0][i]*=1+pe;s[1][i]*=1+pe*.5;}}}}
+  return{time,solexs:s,helios:h};
+}
+
+function buildBg(flux,win){const bg=new Float64Array(flux.length);for(let i=0;i<flux.length;i++){const sl=flux.slice(Math.max(0,i-win),i+1).sort((a,b)=>a-b);bg[i]=Math.max(sl[Math.floor(sl.length*.1)]??sl[0]??1,1);}return bg;}
+function rebuildBg(){if(A.data)A.bgS=buildBg(A.data.solexs[2],A.bgWin);}
+function classify(r){return r>400?'X':r>40?'M':r>8?'C':r>2.8?'B':'A';}
+function estimateEnergy(ratio,durSec){const e=ratio*durSec*1.5e22;if(e>=1e28)return(e/1e28).toFixed(1)+'e28 erg';if(e>=1e25)return(e/1e25).toFixed(1)+'e25 erg';return(e/1e23).toFixed(1)+'e23 erg';}
+
+function checkNowcast(i){
+  if(!A.bgS)return;const fl=A.data.solexs[2][i],bg=A.bgS[i],r=fl/bg;
+  if(!A.inFlare&&r>A.threshold){A.inFlare=true;A.flareStart=i;monSetStatus('flare');flash('p-solexs','flare-active');showBadge('b-solexs','flare','⚡ Flare now');monSetStat('sv-if','Yes','var(--red)');beep(880,320,.42);setTimeout(()=>beep(1100,180,.28),340);}
+  if(A.inFlare&&r<A.threshold*.42){A.inFlare=false;const seg=A.data.solexs[2].slice(A.flareStart,i+1);const pkO=seg.indexOf(Math.max(...seg)),pkI=A.flareStart+pkO;const pkBg=A.bgS[pkI]||bg;const peakRatio=A.data.solexs[2][pkI]/pkBg;const durSec=A.data.time[i]-A.data.time[A.flareStart];const ev={peakT:A.data.time[pkI],dur:durSec,ratio:peakRatio,cls:classify(peakRatio),peakFlux:A.data.solexs[2][pkI],energy:estimateEnergy(peakRatio,durSec),leadMin:(A.forecastAlerted&&A.forecastAlertIdx!=null)?Math.round((A.data.time[pkI]-A.data.time[A.forecastAlertIdx])/60):null};A.events.push(ev);A.forecastAlerted=false;A.forecastAlertIdx=null;addRow(ev);hideBadge('b-solexs');monSetStat('sv-if','No','');monSetStatus('quiet');}
+}
+
+function calcProb(i){
+  const lb=Math.min(i,240);if(lb<40)return 0;const rS0=A.data.solexs[0].slice(i-lb,i);const rH1=A.data.helios[1].slice(i-lb,i);const rS2=A.data.solexs[2].slice(i-lb,i);const mu=a=>a.reduce((s,x)=>s+x,0)/a.length;const enh=Math.max(0,(mu(rS0.slice(-40))-mu(rS0.slice(0,40)))/mu(rS0.slice(0,40)));const hm=mu(rH1),hstd=Math.sqrt(rH1.reduce((s,x)=>s+(x-hm)**2,0)/rH1.length);const slp=Math.max(0,(mu(rS2.slice(-12))/mu(rS2.slice(0,12))-1)*2.5);let p=Math.min(.55,enh*5)+Math.min(.3,hstd/Math.max(hm,1)*2.5)+Math.min(.2,slp);p=Math.min(1,p);if(A.inFlare)p=Math.max(p,.96);
+  if(!A.forecastAlerted&&!A.inFlare&&p>=.55){A.forecastAlerted=true;A.forecastAlertIdx=i;monSetStatus('watch');flash('p-forecast','watch-active');showBadge('b-helios','watch','▲ Precursor');showBadge('b-forecast','watch','▲ Alert');beep(660,200,.22);setTimeout(()=>beep(780,150,.18),240);}
+  if(A.forecastAlerted&&!A.inFlare&&p<.32){A.forecastAlerted=false;A.forecastAlertIdx=null;hideBadge('b-helios');hideBadge('b-forecast');monSetStatus('quiet');}
+  return p;
+}
+
+let cS,cH,cF;
+const darkGrid='rgba(15,23,42,0.05)',darkBorder='rgba(15,23,42,0.08)',darkTick='rgba(71,85,105,0.85)';
+function chartCfg(logY){return{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{position:'bottom',labels:{color:darkTick,usePointStyle:true,pointStyleWidth:12,font:{size:9,family:'Outfit'},padding:10}}},scales:{y:{type:logY?'logarithmic':'linear',...(logY?{}:{min:0,max:1}),grid:{color:darkGrid},border:{color:darkBorder},ticks:{color:darkTick,font:{size:8,family:'JetBrains Mono'},...(logY?{callback:v=>[1,10,100,1000,10000].includes(v)?v.toLocaleString():''}:{callback:v=>(v*100).toFixed(0)+'%'})}},x:{grid:{display:false},border:{color:darkBorder},ticks:{color:darkTick,maxTicksLimit:6,maxRotation:0,font:{size:8,family:'JetBrains Mono'}}}}};}
+function mkDs(lbl,col,fill=false){return{label:lbl,borderColor:col,borderWidth:1.5,backgroundColor:fill?col+'22':'transparent',fill,pointRadius:0,tension:.15,data:[]};}
+function initMonCharts(){
+  cS=new Chart(document.getElementById('c-solexs'),{type:'line',data:{labels:[],datasets:S_LABELS.map((l,i)=>mkDs(l,S_COLORS[i]))},options:chartCfg(true)});
+  cH=new Chart(document.getElementById('c-helios'),{type:'line',data:{labels:[],datasets:H_LABELS.map((l,i)=>mkDs(l,H_COLORS[i]))},options:chartCfg(true)});
+  cF=new Chart(document.getElementById('c-forecast'),{type:'line',data:{labels:[],datasets:[mkDs('Probability','#A78BFA',true),{label:'Alert (55%)',borderColor:'rgba(251,191,36,0.5)',borderWidth:1,borderDash:[5,4],pointRadius:0,fill:false,data:[]}]},options:chartCfg(false)});
+}
+function clearCharts(){[cS,cH,cF].forEach(c=>{c.data.labels=[];c.data.datasets.forEach(d=>d.data=[]);c.update('none');});}
+function updateSpectrum(i){
+  const sV=[A.data.solexs[0][i],A.data.solexs[1][i],A.data.solexs[2][i]];const hV=[A.data.helios[0][i],A.data.helios[1][i],A.data.helios[2][i],A.data.helios[3][i]];const mx=Math.max(...sV,...hV,1);
+  ['sp-s0','sp-s1','sp-s2'].forEach((id,j)=>{document.getElementById(id).style.width=Math.min(100,sV[j]/mx*100)+'%';document.getElementById(id+'-v').textContent=sV[j].toFixed(0);});
+  ['sp-h0','sp-h1','sp-h2','sp-h3'].forEach((id,j)=>{document.getElementById(id).style.width=Math.min(100,hV[j]/mx*100)+'%';document.getElementById(id+'-v').textContent=hV[j].toFixed(0);});
+}
+function updateSolarActivity(i){
+  const p=A.probHist.at(-1)??0;const ssn=Math.round(140+40*Math.sin(i*0.003)+Math.random()*20);document.getElementById('sa-ssn').textContent=ssn;document.getElementById('sa-ssn-bar').style.width=Math.min(100,ssn/2.5)+'%';
+  const kp=Math.min(9,Math.max(0,Math.round(p*6+Math.random()*2)));document.getElementById('sa-kp').textContent=kp;document.getElementById('sa-kp').style.color=kp>5?'var(--red)':kp>3?'var(--amber)':'var(--green)';document.getElementById('sa-kp-bar').style.width=(kp/9*100)+'%';
+}
+function fmt(s){return[Math.floor(s/3600),Math.floor(s%3600/60),Math.floor(s%60)].map(v=>String(v).padStart(2,'0')).join(':');}
+function tick(){
+  if(!A.playing)return;const end=Math.min(A.idx+A.speed,A.data.time.length-1);
+  for(let i=A.idx;i<=end;i++){const lbl=fmt(A.data.time[i]);cS.data.labels.push(lbl);for(let c=0;c<3;c++)cS.data.datasets[c].data.push(Math.max(1,A.data.solexs[c][i]));cH.data.labels.push(lbl);for(let c=0;c<4;c++)cH.data.datasets[c].data.push(Math.max(1,A.data.helios[c][i]));const p=calcProb(i);A.probHist.push(p);cF.data.labels.push(lbl);cF.data.datasets[0].data.push(p);cF.data.datasets[1].data.push(.55);checkNowcast(i);}
+  const over=cS.data.labels.length-MAX_PTS;if(over>0)[cS,cH,cF].forEach(c=>{c.data.labels.splice(0,over);c.data.datasets.forEach(d=>d.data.splice(0,over));});
+  cS.update('none');cH.update('none');cF.update('none');A.idx=end;updateStats(end);updateSpectrum(end);updateSolarActivity(end);
+  const pct=Math.round(end/(A.data.time.length-1)*100);document.getElementById('progress').textContent=`${fmt(A.data.time[end])} · ${pct}%`;
+  if(A.idx>=A.data.time.length-1){stopPlay();document.getElementById('btn-play').textContent='✓ Done';return;}
+  A.animId=requestAnimationFrame(tick);
+}
+function startPlay(){A.playing=true;document.getElementById('btn-play').textContent='❚❚ Pause';A.animId=requestAnimationFrame(tick);}
+function stopPlay(){A.playing=false;if(A.animId)cancelAnimationFrame(A.animId);document.getElementById('btn-play').textContent='▶ Play';}
+function togglePlay(){A.playing?stopPlay():startPlay();}
+function onReset(){
+  stopPlay();Object.assign(A,{idx:0,inFlare:false,forecastAlerted:false,forecastAlertIdx:null,events:[],probHist:[]});clearCharts();
+  document.getElementById('log-body').innerHTML='<tr class="empty-row"><td colspan="8">No flares detected — press Play</td></tr>';document.getElementById('log-count').textContent='0 events detected';document.getElementById('sv-n').textContent='0';document.getElementById('btn-play').textContent='▶ Play';document.getElementById('progress').textContent=`00:00:00 / ${fmt(A.data.time.at(-1))}`;monSetStat('sv-if','No','');['b-solexs','b-helios','b-forecast'].forEach(hideBadge);monSetStatus('ready');setGauge(0);document.getElementById('gauge-num').textContent='—';document.getElementById('sv-p').textContent='—';document.getElementById('fc-state').textContent='No precursor signal';document.getElementById('fc-desc').textContent='Press Play to begin monitoring.';
+  ['sp-s0','sp-s1','sp-s2','sp-h0','sp-h1','sp-h2','sp-h3'].forEach(id=>{document.getElementById(id).style.width='0%';document.getElementById(id+'-v').textContent='—';});
+  document.getElementById('sa-ssn').textContent='—';document.getElementById('sa-ssn-bar').style.width='0%';document.getElementById('sa-kp').textContent='—';document.getElementById('sa-kp-bar').style.width='0%';
+}
+function loadData(d){A.data=d;A.idx=0;A.events=[];A.probHist=[];A.inFlare=false;A.forecastAlerted=false;A.forecastAlertIdx=null;rebuildBg();clearCharts();['b-solexs','b-helios','b-forecast'].forEach(hideBadge);document.getElementById('btn-play').disabled=false;document.getElementById('btn-reset').disabled=false;document.getElementById('btn-play').textContent='▶ Play';document.getElementById('log-body').innerHTML='<tr class="empty-row"><td colspan="8">No flares detected — press Play</td></tr>';document.getElementById('log-count').textContent='0 events detected';document.getElementById('sv-n').textContent='0';document.getElementById('progress').textContent=`00:00:00 / ${fmt(d.time.at(-1))}`;monSetStat('sv-if','No','');monSetStatus('ready');setGauge(0);}
+function onDemo(){loadData(genSynthetic());setTimeout(startPlay,250);}
+function onUpload(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const j=JSON.parse(ev.target.result),d=parseJSON(j);d?loadData(d):alert('Cannot parse JSON');}catch(err){alert('Invalid JSON: '+err.message);}};r.readAsText(f);}
+function parseJSON(j){try{if(j.solexs?.time){const t=j.solexs.time;const sv=Object.values(j.solexs.channels||{}).slice(0,3);const hv=j.helios?Object.values(j.helios.channels||{}).slice(0,4):[];while(sv.length<3)sv.push(new Array(t.length).fill(1));while(hv.length<4)hv.push(new Array(t.length).fill(1));return{time:t,solexs:sv,helios:hv};}if(j.time&&j.solexs&&j.helios)return j;return null;}catch(_){return null;}}
+function monSetStatus(m){const el=document.getElementById('mon-status');el.className=m;el.textContent={quiet:'● Quiet',flare:'⚡ Flare detected',watch:'▲ Precursor alert',ready:'● Ready'}[m]??'● Ready';}
+function monSetStat(id,v,c){const el=document.getElementById(id);el.textContent=v;el.style.color=c;}
+function setGauge(p){
+  const ring=document.getElementById('gauge-ring');const color=p>.7?'#EF4444':p>.45?'#FBBF24':p>.15?'#A78BFA':'rgba(255,255,255,0.08)';
+  ring.style.setProperty('--gauge-pct',(p*100).toFixed(1)+'%');ring.style.setProperty('--gauge-color',color);
+}
+function flash(id,cls){const el=document.getElementById(id);el.classList.remove('flashing',cls);void el.offsetWidth;el.classList.add(cls,'flashing');setTimeout(()=>el.classList.remove('flashing'),1800);}
+function showBadge(id,type,text){const el=document.getElementById(id);el.className='badge show '+type;el.textContent=text;}
+function hideBadge(id){document.getElementById(id).className='badge';}
+function addRow(ev){
+  const body=document.getElementById('log-body');const empty=body.querySelector('.empty-row');if(empty)empty.remove();
+  const tr=document.createElement('tr');const lead=ev.leadMin!=null?`<span class="lead-pill">+${ev.leadMin} min lead</span>`:`<span style="color:var(--ink3)">—</span>`;
+  tr.innerHTML=`<td><span class="cls-dot c${ev.cls}">${ev.cls}</span></td><td>${fmt(ev.peakT)}</td><td>${ev.ratio.toFixed(0)}× BG</td><td style="font-size:9px">${ev.energy}</td><td>${ev.peakFlux.toFixed(0)} cts/s</td><td>${(ev.dur/60).toFixed(1)} min</td><td>${lead}</td><td style="color:var(--ink3);font-size:9px">SoLEXS 6-10 keV</td>`;
+  body.insertBefore(tr,body.firstChild);const n=A.events.length;document.getElementById('log-count').textContent=n+(n===1?' event detected':' events detected');document.getElementById('sv-n').textContent=n;
+}
+function updateStats(i){
+  const p=A.probHist.at(-1)??0,pct=(p*100).toFixed(0);document.getElementById('sv-s').textContent=A.data.solexs[2][i].toFixed(0);document.getElementById('sv-h').textContent=A.data.helios[1][i].toFixed(0);document.getElementById('sv-p').textContent=pct+'%';document.getElementById('sv-p').style.color=p>.7?'var(--red)':p>.45?'var(--amber)':'var(--purple)';document.getElementById('gauge-num').textContent=pct+'%';setGauge(p);
+  document.getElementById('fc-state').textContent=p>.7?'⚡ High alert — flare imminent':p>.45?'▲ Precursor signal rising':'Monitoring baseline activity';
+  document.getElementById('fc-desc').textContent=p>.7?'Strong pre-flare brightening detected. Flare expected within minutes.':p>.45?'Gradual SXR enhancement and HEL1OS bursts suggest a developing active region.':'Background quiet. Watching for soft X-ray rise and hard X-ray precursors.';
+}
+function onThresh(v){A.threshold=+v;document.getElementById('v-thresh').textContent=(+v).toFixed(1)+'×';}
+function onBgWin(v){A.bgWin=+v;document.getElementById('v-bg').textContent=v+' pts';rebuildBg();}
+function onSpeed(v){A.speed=+v;document.getElementById('v-spd').textContent=v+'×';}
+
+initMonCharts();
+
+/* ═══════════════════════════════════════════════════
+   WORKFLOW — SVG connectors
+   ═══════════════════════════════════════════════════ */
+function drawConnectors(){
+  document.querySelectorAll('.dyn-svg').forEach(el=>el.remove());
+  const flow=document.getElementById('flow');if(!flow)return;
+  const flowRect=flow.getBoundingClientRect();
+  const n2=document.getElementById('n2'),n3=document.getElementById('n3'),n4=document.getElementById('n4'),n5=document.getElementById('n5');
+  if(!n2||!n3||!n4||!n5)return;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');svg.classList.add('dyn-svg');svg.style.cssText='position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;';flow.appendChild(svg);
+  const cx=el=>{const r=el.getBoundingClientRect();return r.left+r.width/2-flowRect.left;};
+  const bot=el=>{const r=el.getBoundingClientRect();return r.bottom-flowRect.top;};
+  const top_=el=>{const r=el.getBoundingClientRect();return r.top-flowRect.top;};
+  const x2=cx(n2),y2b=bot(n2),x3=cx(n3),y3t=top_(n3),x4=cx(n4),y4t=top_(n4);const midB=(y2b+y3t)/2;
+  [[x2,y2b,x3,y3t,midB,'rgba(30,136,229,0.3)'],[x2,y2b,x4,y4t,midB,'rgba(236,64,122,0.3)']].forEach(([sx,sy,ex,ey,mid,col])=>{const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',`M${sx},${sy} L${sx},${mid} L${ex},${mid} L${ex},${ey}`);p.setAttribute('stroke',col);p.setAttribute('stroke-width','2');p.setAttribute('fill','none');p.classList.add('flow-line');svg.appendChild(p);});
+  const y3b=bot(n3),y4b=bot(n4),x5=cx(n5),y5t=top_(n5);const midM=(Math.max(y3b,y4b)+y5t)/2;
+  [[x3,y3b,x5,y5t,midM,'rgba(30,136,229,0.2)'],[x4,y4b,x5,y5t,midM,'rgba(236,64,122,0.2)']].forEach(([sx,sy,ex,ey,mid,col])=>{const p=document.createElementNS('http://www.w3.org/2000/svg','path');p.setAttribute('d',`M${sx},${sy} L${sx},${mid} L${ex},${mid} L${ex},${ey}`);p.setAttribute('stroke',col);p.setAttribute('stroke-width','2');p.setAttribute('fill','none');p.classList.add('flow-line');svg.appendChild(p);});
+}
+window.addEventListener('resize',drawConnectors);
+
+/* ═══════════════════════════════════════════════════
+   FLARE OCCURRENCE — Profile chart
+   ═══════════════════════════════════════════════════ */
+window._flareChartInit = false;
+function initFlareChart(){
+  window._flareChartInit = true;
+  const N=600,dt=2,peakIdx=200,riseS=85,decayS=580;const hRise=riseS*0.22,hDecay=decayS*0.13;
+  const sxr=[],hxr=[],pre=[],labels=[];
+  for(let i=0;i<N;i++){const t=(i-peakIdx)*dt;labels.push(((i*dt)/60).toFixed(1));
+    sxr.push((t<0?Math.exp(-t*t/(2*riseS*riseS)):Math.exp(-t/decayS))*49);
+    hxr.push((t<0?Math.exp(-t*t/(2*hRise*hRise)):Math.exp(-t/hDecay))*49*0.7);
+    if(t>=-2100&&t<-riseS*2.5){const pe=0.13*Math.exp(-((t+900)**2)/(2*450*450));pre.push(pe>5e-4?pe*49*3:null);}else{pre.push(null);}
+  }
+  new Chart(document.getElementById('flare-chart'),{type:'line',data:{labels,datasets:[
+    {label:'Pre-flare',data:pre,borderColor:'rgba(234,88,12,0.4)',backgroundColor:'rgba(234,88,12,0.08)',borderWidth:1.5,pointRadius:0,fill:true,tension:0.3,spanGaps:false},
+    {label:'SXR',data:sxr,borderColor:'#0284C7',backgroundColor:'rgba(2,132,199,0.08)',borderWidth:2,pointRadius:0,fill:true,tension:0.2},
+    {label:'HXR',data:hxr,borderColor:'#DB2777',backgroundColor:'rgba(219,39,119,0.06)',borderWidth:2,pointRadius:0,fill:true,tension:0.2}
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'nearest',intersect:false},plugins:{legend:{display:false}},scales:{x:{title:{display:true,text:'Time (minutes)',color:'var(--ink2)',font:{family:'Outfit',size:10}},grid:{color:'rgba(15,23,42,0.04)'},border:{color:'rgba(15,23,42,0.06)'},ticks:{color:'var(--ink2)',maxTicksLimit:12,maxRotation:0,font:{family:'JetBrains Mono',size:8}}},y:{title:{display:true,text:'Flux (× background)',color:'var(--ink2)',font:{family:'Outfit',size:10}},grid:{color:'rgba(15,23,42,0.04)'},border:{color:'rgba(15,23,42,0.06)'},ticks:{color:'var(--ink2)',font:{family:'JetBrains Mono',size:8}}}}}});
+}
+</script>
+</body>
+</html>
